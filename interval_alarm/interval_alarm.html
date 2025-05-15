@@ -127,8 +127,9 @@
 
             const m_interval_ms = m_interval * 60000;
             const m_pre_secs_ms = m_pre_secs * 1000;
+            const m_audio_len_ms = 3500;
 
-            const m_tmp_1 = m_interval_ms * Math.floor((+m_now + m_pre_secs_ms) / m_interval_ms) + (m_interval_ms - m_pre_secs_ms);
+            const m_tmp_1 = Math.floor((+m_now + m_pre_secs_ms) / m_interval_ms) * m_interval_ms + (m_interval_ms - m_pre_secs_ms) - m_audio_len_ms;
 
             const m_next = new Date(m_tmp_1);
 

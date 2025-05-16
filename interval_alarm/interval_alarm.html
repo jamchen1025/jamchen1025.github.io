@@ -86,20 +86,42 @@
         let m_timer = null;
         let m_next_alarm_time = null;
 
-        function f_reset_display() {
+        function f_load_settings()
+        {
+            const m_def_inp_interval = localStorage.getItem('m_def_inp_interval');
+            if (m_def_inp_interval)
+            {
+                inp_interval.value = m_def_inp_interval;
+            }
+
+            const m_def_inp_pre_secs = localStorage.getItem('m_def_inp_pre_secs');
+            if (m_def_inp_pre_secs)
+            {
+                inp_pre_secs.value = m_def_inp_pre_secs;
+            }
+        }
+
+        window.addEventListener('load', () => {
+            f_load_settings();
+        });
+
+        function f_reset_display()
+        {
             document.title = "倒數提醒器";
             btn_toggle.textContent = '啟動提醒';
             div_next_alarm.textContent = '-';
         }
 
-        function f_update_display() {
+        function f_update_display()
+        {
             if (!m_timer) return;
             if (!m_next_alarm_time) return;
 
             const m_now = new Date();
             const m_diff = m_next_alarm_time - m_now;
 
-            if (m_diff < 0) {
+            if (m_diff < 0)
+            {
                 f_reset_display();
                 return;
             }
@@ -110,7 +132,8 @@
             document.title = `${m_diff_min.toString().padStart(2, '0')}:${m_diff_sec.toString().padStart(2, '0')}`;
         }
 
-        function f_play_alarm() {
+        function f_play_alarm()
+        {
             const m_now = new Date();
             console.log("alarm: " + m_now);
 
@@ -121,7 +144,8 @@
             }, 10000);
         }
 
-        function f_calculate_next_alarm_time(m_interval, m_pre_secs) {
+        function f_calculate_next_alarm_time(m_interval, m_pre_secs)
+        {
             const m_now = new Date();
             m_now.setSeconds(0, 0);
 
@@ -136,18 +160,19 @@
             return m_next;
         }
 
-        function f_schedule_next_alarm() {
+        function f_schedule_next_alarm()
+        {
             const m_now = new Date();
             console.log("f_schedule_next_alarm: " + m_now);
 
             btn_toggle.textContent = '停止提醒';
 
-            const interval = parseInt(inp_interval.value);
-            if (isNaN(interval)) return;
-            const pre_secs = parseInt(inp_pre_secs.value);
-            if (isNaN(pre_secs)) return;
+            const m_interval = parseInt(inp_interval.value);
+            if (isNaN(m_interval)) return;
+            const m_pre_secs = parseInt(inp_pre_secs.value);
+            if (isNaN(m_pre_secs)) return;
 
-            m_next_alarm_time = f_calculate_next_alarm_time(interval, pre_secs);
+            m_next_alarm_time = f_calculate_next_alarm_time(m_interval, m_pre_secs);
             const m_diff = m_next_alarm_time - new Date();
 
             if (m_diff > 0) {
@@ -183,9 +208,13 @@
         });
 
         inp_interval.addEventListener('change', () => {
+            localStorage.setItem('m_def_inp_interval', inp_interval.value);
+
             if (m_timer) f_schedule_next_alarm();
         });
         inp_pre_secs.addEventListener('change', () => {
+            localStorage.setItem('m_def_inp_pre_secs', inp_pre_secs.value);
+
             if (m_timer) f_schedule_next_alarm();
         });
 

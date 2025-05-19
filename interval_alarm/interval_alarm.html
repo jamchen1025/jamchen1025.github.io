@@ -83,6 +83,8 @@
 
         const audio_alarmsound = document.getElementById('audio_alarmsound');
 
+        const m_audio_len_ms = 4000;
+
         let m_timer = null;
         let m_next_alarm_time = null;
 
@@ -135,44 +137,34 @@
         function f_play_alarm()
         {
             const m_now = new Date();
-            console.log("alarm: " + m_now);
+            console.log("f_play_alarm: " + m_now);
 
             audio_alarmsound.play();
             setTimeout(() => {
                 audio_alarmsound.pause();
                 f_schedule_next_alarm();
-            }, 10000);
-        }
-
-        function f_calculate_next_alarm_time(m_interval, m_pre_secs)
-        {
-            const m_now = new Date();
-            m_now.setSeconds(0, 0);
-
-            const m_interval_ms = m_interval * 60000;
-            const m_pre_secs_ms = m_pre_secs * 1000;
-            const m_audio_len_ms = 3500;
-
-            const m_tmp_1 = Math.floor((+m_now + m_pre_secs_ms) / m_interval_ms) * m_interval_ms + (m_interval_ms - m_pre_secs_ms) - m_audio_len_ms;
-
-            const m_next = new Date(m_tmp_1);
-
-            return m_next;
+            }, m_audio_len_ms);
         }
 
         function f_schedule_next_alarm()
         {
             const m_now = new Date();
-            console.log("f_schedule_next_alarm: " + m_now);
 
             btn_toggle.textContent = '停止提醒';
 
+            // calculate_next_alarm_time
             const m_interval = parseInt(inp_interval.value);
             if (isNaN(m_interval)) return;
             const m_pre_secs = parseInt(inp_pre_secs.value);
             if (isNaN(m_pre_secs)) return;
 
-            m_next_alarm_time = f_calculate_next_alarm_time(m_interval, m_pre_secs);
+            m_now.setSeconds(0, 0);
+
+            const m_interval_ms = m_interval * 60000;
+            const m_pre_secs_ms = m_pre_secs * 1000;
+
+            m_next_alarm_time = new Date(Math.floor((+m_now + m_pre_secs_ms) / m_interval_ms) * m_interval_ms + m_interval_ms - m_pre_secs_ms - m_audio_len_ms);
+
             const m_diff = m_next_alarm_time - new Date();
 
             if (m_diff > 0) {
@@ -204,7 +196,7 @@
             audio_alarmsound.play();
             setTimeout(() => {
                 audio_alarmsound.pause();
-            }, 10000);
+            }, m_audio_len_ms);
         });
 
         inp_interval.addEventListener('change', () => {

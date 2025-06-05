@@ -258,7 +258,8 @@
 
                 if (m_is_in_range)
                 {
-                    m_element.querySelector('#div_remain_time').innerText = "remain... "+((1440 + m_hhmm_e - m_hhmm_current) % 1440)+" min";
+                    const m_remain_min = ((1440 + m_hhmm_e - m_hhmm_current) % 1440);
+                    m_element.querySelector('#div_remain_time').innerText = "remain... "+ String(Math.floor(m_remain_min / 60)).padStart(2, '0') + "h " + (m_remain_min % 60) + "m" ;
                     if (m_element.classList.contains('active') == false)
                     {
                         m_element.classList.add('active');

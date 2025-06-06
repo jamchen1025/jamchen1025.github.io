@@ -7,7 +7,7 @@ function f_return_json_schedule() {
         "time": "0800-0930",
         "name": "晨練",
         "note": "起床喝溫水（加檸檬）\n眼保健操 + 鳴天鼓36下\n經絡梳頭\n瑜珈伸展（貓牛式+嬰兒式）\n古法養生操/八段錦\n拍八虛（肘窩腋窩股窩膝窩各100下）",
-        "link": "晨練播放清單(https://www.youtube.com/watch?v=pbd6maxFvR4&list=PLR-kEVmbxX8Qqa3zkBeSlCmo5MXDYnTcp)"
+        "link": "晨練播放清單(https://www.youtube.com/watch?v=HoSS0ZXOB3E&list=PLR-kEVmbxX8Qqa3zkBeSlCmo5MXDYnTcp)"
     },
     {
         "time": "0930-1100",

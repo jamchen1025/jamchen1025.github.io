@@ -252,11 +252,11 @@
                 let m_is_in_range = false;
                 if (m_hhmm_s <= m_hhmm_e)
                 {
-                    m_is_in_range = m_hhmm_s <= m_hhmm_current && m_hhmm_current <= m_hhmm_e;
+                    m_is_in_range = m_hhmm_s <= m_hhmm_current && m_hhmm_current < m_hhmm_e;
                 }
                 else
                 {
-                    m_is_in_range = m_hhmm_s <= m_hhmm_current || m_hhmm_current <= m_hhmm_e;
+                    m_is_in_range = m_hhmm_s <= m_hhmm_current || m_hhmm_current < m_hhmm_e;
                 }
 
                 if (m_is_in_range)

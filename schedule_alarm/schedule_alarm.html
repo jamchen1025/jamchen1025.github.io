@@ -205,10 +205,15 @@
                 const m_note_format = item.note.split('\n').map((item, index) => {
                     let m_prefix = "";
                     let m_msg = "";
-                    if (item.charAt(0) == "-")
+                    if (item.slice(0,2) == "--")
                     {
-                        m_prefix = "　";
-                        m_msg = item.substring(1);;
+                        m_prefix = "　　-";
+                        m_msg = item.substring(2);
+                    }
+                    else if (item.slice(0,1) == "-")
+                    {
+                        m_prefix = "　-";
+                        m_msg = item.substring(1);
                     }
                     else
                     {

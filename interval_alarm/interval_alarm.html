@@ -41,7 +41,7 @@
         #inp_interval, #inp_pre_secs {
             width: 80px;
         }
-        #div_next_alarm {
+        #div_next_alarm_time {
             margin: 20px 10px;
             padding: 10px;
             font-size: 18px;
@@ -54,47 +54,53 @@
     <div>
         <input type="text" id="inp_xx_code">
         <button id="btn_save_xx_code">更新Code</button>
-        <br/>
-    <div>
-
-    <div>
-        <button id="btn_toggle"></button>
         <button id="btn_test_audio">測試播放</button>
-    <div>
-
-    <div class="control-group">
-        <label> 間隔(m): </label>
-        <input type="number" id="inp_interval" min="1" max="120" value="30">
-
-        <label>　提前(s): </label>
-        <input type="number" id="inp_pre_secs" min="0" max="300" value="60">
-        <div id="div_next_alarm"></div>
+        <br/>
     </div>
 
-    <audio id="audio_alarmsound">
-        <!-- <source src="https://assets.mixkit.co/active_storage/sfx/1317/1317-preview.mp3" type="audio/mpeg"> -->
-        <source src="./1317-preview.wav" type="audio/mpeg">
-        您的瀏覽器不支持音效播放
-    </audio>
+    <div class="control-group">
+        <button id="btn_toggle"></button>
+        <label> 間隔(m): </label>
+        <input type="number" id="inp_interval" min="1" max="120" value="30">
+        <label> 提前(s): </label>
+        <input type="number" id="inp_pre_secs" min="0" max="300" value="60">
+        <div id="div_next_alarm_time"></div>
+        <audio id="audio_alarmsound">
+            <source src="./1317-preview.wav" type="audio/mpeg">
+            您的瀏覽器不支持音效播放
+        </audio>
+    </div>
 
 
     <script>
         const inp_xx_code = document.getElementById('inp_xx_code');
-        const btn_save_xx_code = document.getElementById('btn_save_xx_code');
 
         const btn_toggle = document.getElementById('btn_toggle');
-
         const inp_interval = document.getElementById('inp_interval');
         const inp_pre_secs = document.getElementById('inp_pre_secs');
-
-        const div_next_alarm = document.getElementById('div_next_alarm');
-
+        const div_next_alarm_time = document.getElementById('div_next_alarm_time');
         const audio_alarmsound = document.getElementById('audio_alarmsound');
-
         const m_audio_len_ms = 4000;
-
         let m_timer = null;
         let m_next_alarm_time = null;
+
+        document.getElementById('btn_save_xx_code').addEventListener('click', () => {
+            localStorage.setItem('m_def_inp_xx_code', inp_xx_code.value);
+        });
+
+        document.getElementById('btn_test_audio').addEventListener('click', () => {
+            audio_alarmsound.play();
+            setTimeout(() => {
+                audio_alarmsound.pause();
+            }, m_audio_len_ms);
+        });
+
+        function f_reset_display()
+        {
+            document.title = "倒數提醒器";
+            btn_toggle.textContent = '啟動';
+            div_next_alarm_time.textContent = '-';
+        }
 
         function f_load_settings()
         {
@@ -102,6 +108,10 @@
             if (m_def_inp_xx_code)
             {
                 inp_xx_code.value = m_def_inp_xx_code;
+            }
+            else
+            {
+                inp_xx_code.value = f_return_xx_code();
             }
 
             const m_def_inp_interval = localStorage.getItem('m_def_inp_interval');
@@ -118,41 +128,16 @@
         }
 
         window.addEventListener('load', () => {
+            f_reset_display();
             f_load_settings();
+
             f_schedule_next_alarm();
         });
 
-        function f_reset_display()
-        {
-            document.title = "倒數提醒器";
-            btn_toggle.textContent = '啟動提醒';
-            div_next_alarm.textContent = '-';
-        }
-
-        function f_update_display()
-        {
-            if (!m_timer) return;
-            if (!m_next_alarm_time) return;
-
-            const m_now = new Date();
-            const m_diff = m_next_alarm_time - m_now;
-
-            if (m_diff < 0)
-            {
-                f_reset_display();
-                return;
-            }
-
-            // 更新倒數顯示
-            const m_diff_min = Math.floor(m_diff / 60000);
-            const m_diff_sec = Math.floor((m_diff % 60000) / 1000);
-            document.title = `${m_diff_min.toString().padStart(2, '0')}:${m_diff_sec.toString().padStart(2, '0')}`;
-        }
-
         function f_play_alarm()
         {
-            const m_now = new Date();
-            console.log("f_play_alarm: " + m_now);
+            // const m_now = new Date();
+            // console.log("f_play_alarm: " + m_now);
 
             audio_alarmsound.play();
             setTimeout(() => {
@@ -165,7 +150,7 @@
         {
             const m_now = new Date();
 
-            btn_toggle.textContent = '停止提醒';
+            btn_toggle.textContent = '停止';
 
             // calculate_next_alarm_time
             const m_interval = parseInt(inp_interval.value);
@@ -188,12 +173,32 @@
             }
 
             // 更新下次提醒時間
-            div_next_alarm.innerHTML = `> ${m_next_alarm_time.toLocaleTimeString('zh-TW', {
+            div_next_alarm_time.innerHTML = `> ${m_next_alarm_time.toLocaleTimeString('zh-TW', {
                 hour12: false,
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
             })}`;
+        }
+
+        function f_update_display()
+        {
+            if (!m_timer) return;
+            if (!m_next_alarm_time) return;
+
+            const m_now = new Date();
+            const m_diff = m_next_alarm_time - m_now;
+
+            if (m_diff < 0)
+            {
+                f_reset_display();
+                return;
+            }
+
+            // 更新倒數顯示
+            const m_diff_min = Math.floor(m_diff / 60000);
+            const m_diff_sec = Math.floor((m_diff % 60000) / 1000);
+            document.title = `${m_diff_min.toString().padStart(2, '0')}:${m_diff_sec.toString().padStart(2, '0')}`;
         }
 
         btn_toggle.addEventListener('click', () => {
@@ -207,13 +212,6 @@
             }
         });
 
-        document.getElementById('btn_test_audio').addEventListener('click', () => {
-            audio_alarmsound.play();
-            setTimeout(() => {
-                audio_alarmsound.pause();
-            }, m_audio_len_ms);
-        });
-
         inp_interval.addEventListener('change', () => {
             localStorage.setItem('m_def_inp_interval', inp_interval.value);
 
@@ -225,16 +223,12 @@
             if (m_timer) f_schedule_next_alarm();
         });
 
-        btn_save_xx_code.addEventListener('click', () => {
-            localStorage.setItem('m_def_inp_xx_code', inp_xx_code.value);
-        });
 
         // 強化倒數更新頻率
         setInterval(f_update_display, 500);
 
-        window.addEventListener('load', f_reset_display());
 
-        document.getElementById('inp_xx_code').value = f_return_xx_code();
+
     </script>
 </body>
 </html>

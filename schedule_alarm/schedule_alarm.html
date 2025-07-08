@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <script src="schedule_json.js"></script>
+
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="../favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="../favicon/favicon.svg" />
+    <link rel="shortcut icon" href="../favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicon/apple-touch-icon.png" />
+    <title></title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f3f5;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            transition: border 0.3s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #2575fc;
+            box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+        }
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .c_schedule_item {
+            margin: 10px 0px;
+            padding: 15px 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .c_schedule_item.active {
+            border-left: 20px solid #4CAF50;
+            border-right: 20px solid #4CAF50;
+        }
+
+        .c_timerange {
+            margin: 0px 0px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: #2196F3;
+            color: white;
+            font-size: 15px;
+            display: inline-block;
+        }
+        .c_btn_close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .c_btn_close:hover {
+            background: #cc0000;
+            transform: rotate(90deg);
+        }
+
+        .c_reminder_popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            width: 280px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .c_container_header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .c_container_title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .c_container_json_data {
+            padding: 25px;
+            margin-bottom: 20px;
+            min-width: 300px;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .c_btn_normal {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .c_notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #DDDDDD;
+            color: #2c3e50;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(200%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            gap: 10px;
+        }
+        .c_notification.show {
+            transform: translateY(0);
+        }
+        .c_notification.success {
+            border-left: 5px solid #2ecc71;
+        }
+        .c_notification.error {
+            border-left: 5px solid #ff4757;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="div_schedule_container"></div>
+    <div class="c_container_json_data">
+        <div class="c_container_header">
+            <h2 class="c_container_title">行程資料</h2>
+            <div class="c_container_title">
+                <button id="btn_save_json_data" class="c_btn_normal">更新</button>
+                <button id="btn_reset_default_json_data" class="c_btn_normal">重設</button>
+                <button id="btn_test_audio" class="c_btn_normal">🔈</button>
+            </div>
+        </div>
+        <textarea id="txta_json_data" placeholder='例如：{"A": "a", "B": "B"}'></textarea>
+    </div>
+    <div id="div_notification" class="c_notification"><span>無</span></div>
+    <audio id="audio_alarmsound">
+        <!-- <source src="https://assets.mixkit.co/active_storage/sfx/1317/1317-preview.mp3" type="audio/mpeg"> -->
+        <source src="./mixkit-interface-hint-notification-911.wav" type="audio/mpeg">
+        您的瀏覽器不支持音效播放
+    </audio>
+
+    <script>
+        const txta_json_data = document.getElementById('txta_json_data');
+        const btn_save_json_data = document.getElementById('btn_save_json_data');
+        const btn_reset_default_json_data = document.getElementById('btn_reset_default_json_data');
+        const div_notification = document.getElementById('div_notification');
+        // const audio_alarmsound = new Audio('data:audio/wav;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7xA4Tvh9Rz/y8QADBwMWgQAZG/ILNAARQ4GLTcDeIIIhxGOBAuD7hOfBB3/94gcJ3w+o5/5eIAIAAAVwWgQAVQ2ORaIQwEMAJiDg95G4nQL7mQVWI6GwRcfsZAcsKkJvxgxEjzFUgfHoSQ9Qq7KNwqHwuB13MA4a1q/DmBrHgPcmjiGoh//EwC5nGPEmS4RcfkVKOhJf+WOgoxJclFz3kgn//dBA+ya1GhurNn8zb//9NNutNuhz31f////9vt///z+IdAEAAAK4LQIAKobHItEIYCGAExBwe8jcToF9zIKrEdDYIuP2MgOWFSE34wYiR5iqQPj0JIeoVdlG4VD4XA67mAcNa1fhzA1jwHuTRxDUQ//iYBczjHiTJcIuPyKlHQkv/LHQUYkuSi57yQT//uggfZNajQ3Vmz+Zt//+mm3Wm3Q576v////+32///5/EOgAAADVghQAAAAA//uQZAUAB1WI0PZugAAAAAoQwAAAEk3nRd2qAAAAACiDgAAAAAAABCqEEQRLCgwpBGMlJkIz8jKhGvj4k6jzRnqasNKIeoh5gI7BJaC1A1AoNBjJgbyApVS4IDlZgDU5WUAxEKDNmmALHzZp0Fkz1FMTmGFl1FMEyodIavcCAUHDWrKAIA4aa2oCgILEBupZgHvAhEBcZ6joQBxS76AgccrFlczBvKLC0QI2cBoCFvfTDAo7eoOQInqDPBtvrDEZBNYN5xwNwxQRfw8ZQ5wQVLvO8OYU+mHvFLlDh05Mdg7BT6YrRPpCBznMB2r//xKJjyyOh+cImr2/4doscwD6neZjuZR4AgAABYAAAABy1xcdQtxYBYYZdifkUDgzzXaXn98Z0oi9ILU5mBjFANmRwlVJ3/6jYDAmxaiDG3/6xjQQCCKkRb/6kg/wW+kSJ5//rLobkLSiKmqP/0ikJuDaSaSf/6JiLYLEYnW/+kXg1WRVJL/9EmQ1YZIsv/6Qzwy5qk7/+tEU0nkls3/zIUMPKNX/6yZLf+kFgAfgGyLFAUwY//uQZAUABcd5UiNPVXAAAApAAAAAE0VZQKw9ISAAACgAAAAAVQIygIElVrFkBS+Jhi+EAuu+lKAkYUEIsmEAEoMeDmCETMvfSHTGkF5RWH7kz/ESHWPAq/kcCRhqBtMdokPdM7vil7RG98A2sc7zO6ZvTdM7pmOUAZTnJW+NXxqmd41dqJ6mLTXxrPpnV8avaIf5SvL7pndPvPpndJR9Kuu8fePvuiuhorgWjp7Mf/PRjxcFCPDkW31srioCExivv9lcwKEaHsf/7ow2Fl1T/9RkXgEhYElAoCLFtMArxwivDJJ+bR1HTKJdlEoTELCIqgEwVGSQ+hIm0NbK8WXcTEI0UPoa2NbG4y2K00JEWbZavJXkYaqo9CRHS55FcZTjKEk3NKoCYUnSQ0rWxrZbFKbKIhOKPZe1cJKzZSaQrIyULHDZmV5K4xySsDRKWOruanGtjLJXFEmwaIbDLX0hIPBUQPVFVkQkDoUNfSoDgQGKPekoxeGzA4DUvnn4bxzcZrtJyipKfPNy5w+9lnXwgqsiyHNeSVpemw4bWb9psYeq//uQZBoABQt4yMVxYAIAAAkQoAAAHvYpL5m6AAgAACXDAAAAD59jblTirQe9upFsmZbpMudy7Lz1X1DYsxOOSWpfPqNX2WqktK0DMvuGwlbNj44TleLPQ+Gsfb+GOWOKJoIrWb3cIMeeON6lz2umTqMXV8Mj30yWPpjoSa9ujK8SyeJP5y5mOW1D6hvLepeveEAEDo0mgCRClOEgANv3B9a6fikgUSu/DmAMATrGx7nng5p5iimPNZsfQLYB2sDLIkzRKZOHGAaUyDcpFBSLG9MCQALgAIgQs2YunOszLSAyQYPVC2YdGGeHD2dTdJk1pAHGAWDjnkcLKFymS3RQZTInzySoBwMG0QueC3gMsCEYxUqlrcxK6k1LQQcsmyYeQPdC2YfuGPASCBkcVMQQqpVJshui1tkXQJQV0OXGAZMXSOEEBRirXbVRQW7ugq7IM7rPWSZyDlM3IuNEkxzCOJ0ny2ThNkyRai1b6ev//3dzNGzNb//4uAvHT5sURcZCFcuKLhOFs8mLAAEAt4UWAAIABAAAAAB4qbHo0tIjVkUU//uQZAwABfSFz3ZqQAAAAAngwAAAE1HjMp2qAAAAACZDgAAAD5UkTE1UgZEUExqYynN1qZvqIOREEFmBcJQkwdxiFtw0qEOkGYfRDifBui9MQg4QAHAqWtAWHoCxu1Yf4VfWLPIM2mHDFsbQEVGwyqQoQcwnfHeIkNt9YnkiaS1oizycqJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=');
+        const audio_alarmsound = document.getElementById('audio_alarmsound');
+
+        let m_json_data = {};
+        let m_json_data_time_s_e = [];
+
+        // 行程表顯示
+        function f_render_schedule()
+        {
+            m_json_data_time_s_e = m_json_data.schedule.map(item => {
+                const [m_hhmm_s, m_hhmm_e] = item.time.split('-').map(Number);
+                const m_min_s = Math.floor(m_hhmm_s / 100) * 60 + m_hhmm_s % 100
+                const m_min_e = Math.floor(m_hhmm_e / 100) * 60 + m_hhmm_e % 100
+                return {
+                    "s": m_min_s,
+                    "e": m_min_e,
+                    "hrs": Number((((1440 + m_min_e - m_min_s) % 1440) / 60).toFixed(1)),
+                };
+            });
+
+            document.getElementById('div_schedule_container').innerHTML = m_json_data.schedule.map((item, index) => {
+                const m_note_format = item.note.split('\n').map((item, index) => {
+                    let m_prefix = "";
+                    let m_msg = "";
+                    if (item.slice(0,2) == "--")
+                    {
+                        m_prefix = "　　-";
+                        m_msg = item.substring(2);
+                    }
+                    else if (item.slice(0,1) == "-")
+                    {
+                        m_prefix = "　-";
+                        m_msg = item.substring(1);
+                    }
+                    else
+                    {
+                        m_prefix = "➤";
+                        m_msg = item;
+                    }
+                    return m_prefix + m_msg + "<br/>";
+                }).join("");
+
+                const m_link_format = item.link.split('\n').map((item, index) => {
+                    const m_a_link_info = item.split("https://");
+                    if (m_a_link_info.length == 2)
+                    {
+                        return `<a href="https://${m_a_link_info[1]}" target="_blank">${m_a_link_info[0]}</a><br/>`;
+                    }
+                    return "";
+                }).join("");
+
+                return `<div class="c_schedule_item">
+                    <div>
+                        <div class="c_timerange">${item.time} (${m_json_data_time_s_e[index].hrs}hr)</div>
+                        <h3 style="margin: 0px 15px; display: inline-block;">${item.name}</h3>
+                        <h3 id="div_remain_time" style="margin: 0px 15px; display: inline-block; color: #777777;"></h3>
+                    </div>
+                    <p>${m_note_format}</p>
+                    ${m_link_format}
+                </div>
+            `}).join('');
+        }
+
+        // 時間檢查與提醒
+        let m_reminder_recorder = {};
+
+        function f_check_schedule()
+        {
+            const m_now = new Date();
+            const m_hhmm_current = m_now.getHours() * 60 + m_now.getMinutes();
+
+            // 顯示當前時間
+            document.title = `${m_now.toLocaleTimeString('zh-TW', { hour12: false })}`;
+
+            m_json_data.schedule.forEach((item, index) =>
+            {
+                const m_hhmm_s = m_json_data_time_s_e[index].s;
+                const m_hhmm_e = m_json_data_time_s_e[index].e;
+
+                const m_element = document.querySelectorAll('.c_schedule_item')[index];
+                const m_reminder_key = `${m_hhmm_s}${item.name}`;
+
+                let m_is_in_range = false;
+                if (m_hhmm_s <= m_hhmm_e)
+                {
+                    m_is_in_range = m_hhmm_s <= m_hhmm_current && m_hhmm_current < m_hhmm_e;
+                }
+                else
+                {
+                    m_is_in_range = m_hhmm_s <= m_hhmm_current || m_hhmm_current < m_hhmm_e;
+                }
+
+                if (m_is_in_range)
+                {
+                    const m_remain_min = ((1440 + m_hhmm_e - m_hhmm_current) % 1440);
+                    m_element.querySelector('#div_remain_time').innerText = "remain... "+ String(Math.floor(m_remain_min / 60)).padStart(2, '0') + "h " + (m_remain_min % 60) + "m" ;
+                    if (m_element.classList.contains('active') == false)
+                    {
+                        m_element.classList.add('active');
+                        m_element.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+
+                    if (!m_reminder_recorder[m_reminder_key])
+                    {
+                        f_show_reminder(item);
+                        m_reminder_recorder[m_reminder_key] = true;
+                    }
+                }
+                else
+                {
+                    if (m_element.classList.contains('active'))
+                    {
+                        m_element.querySelector('#div_remain_time').innerText = "";
+                        m_element.classList.remove('active');
+                        m_reminder_recorder[m_reminder_key] = false;
+                    }
+                }
+            });
+        }
+
+        // 顯示提醒彈窗
+        function f_show_reminder(item)
+        {
+            if(document.querySelector('.c_reminder_popup'))
+            {
+                return; // 已有彈窗存在時不再新增
+            }
+
+            // 音效控制
+            audio_alarmsound.play().catch(error => console.log('音效播放需用戶互動'));
+
+            const popup = document.createElement('div');
+            popup.className = 'c_reminder_popup';
+            popup.innerHTML = `
+                <button class="c_btn_close">×</button>
+                <h3 style="margin-top:5px">⏰ 行程提醒</h3>
+                <h3>[${item.time}] ${item.name}</h3>
+                <!--<p>${item.note}</p>-->
+            `;
+
+            // 關閉功能封裝
+            const closeReminder = () =>
+            {
+                popup.remove();
+                audio_alarmsound.pause();
+                clearTimeout(autoCloseTimer);
+            };
+
+            // 關閉按鈕監聽
+            popup.querySelector('.c_btn_close').addEventListener('click', closeReminder);
+
+            // 自動關閉計時器
+            const autoCloseTimer = setTimeout(closeReminder, 10000);
+
+            document.body.appendChild(popup);
+        }
+
+        // 載入json資料
+        function f_load_json_data()
+        {
+            const m_local_data = localStorage.getItem('txta_json_data');
+            let m_data;
+
+            if (m_local_data) {
+                try {
+                    m_data = JSON.parse(m_local_data);
+                    txta_json_data.value = JSON.stringify(m_data, null, 2);
+                    f_handle_new_json_data(m_data);
+                    f_show_notification('數據成功加載', 'success');
+                } catch (e) {
+                    txta_json_data.value = '';
+                    f_show_notification('數據格式錯誤', 'error');
+                }
+            } else {
+                f_set_default_json_data();
+                txta_json_data.value = JSON.stringify(m_json_data, null, 2);
+                f_render_schedule();
+                f_show_notification('加載預設數據', 'success');
+            }
+        }
+
+        // 儲存json資料
+        function f_save_json_data()
+        {
+            try {
+                const m_data = JSON.parse(txta_json_data.value);
+                localStorage.setItem('txta_json_data', JSON.stringify(m_data));
+                f_handle_new_json_data(m_data);
+                f_show_notification('數據保存成功！', 'success');
+            } catch (e) {
+                f_show_notification('數據保存失敗：JSON格式錯誤', 'error');
+            }
+        }
+
+        // 處理新的json資料
+        function f_handle_new_json_data(m_data)
+        {
+            m_json_data = m_data;
+            f_render_schedule();
+        }
+
+        // 顯示通知
+        function f_show_notification(m_msg, m_type = 'success')
+        {
+            div_notification.querySelector('span').textContent = m_msg;
+            div_notification.className = 'c_notification';
+
+            if (m_type === 'success') {
+                div_notification.classList.add('success');
+            } else {
+                div_notification.classList.add('error');
+            }
+
+            div_notification.classList.add('show');
+
+            setTimeout(() => {
+                div_notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function f_set_default_json_data()
+        {
+            m_json_data = f_return_json_schedule();
+        }
+
+        function f_reset_default_json_data()
+        {
+            f_set_default_json_data();
+            localStorage.removeItem('txta_json_data');
+            f_load_json_data();
+        }
+
+        btn_save_json_data.addEventListener('click', f_save_json_data);
+        btn_reset_default_json_data.addEventListener('click', f_reset_default_json_data);
+
+        // 初始化
+        f_set_default_json_data();
+        f_load_json_data();
+
+        f_check_schedule();
+        setInterval(f_check_schedule, 2000);  // 每2秒檢查時間
+
+        ////////////////////////////////////////////////
+        document.getElementById('btn_test_audio').addEventListener('click', () => {
+            audio_alarmsound.play();
+            setTimeout(() => {
+                audio_alarmsound.pause();
+            }, 3000);
+        });
+        ////////////////////////////////////////////////
+    </script>
+</body>
+</html>

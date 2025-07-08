@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <script src="xx_code.js"></script>
+
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="../favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="../favicon/favicon.svg" />
+    <link rel="shortcut icon" href="../favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicon/apple-touch-icon.png" />
+    <title></title>
+    <style>
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        button {
+            margin: 10px 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        input {
+            margin: 20px 5px;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+        }
+        label {
+            margin: 20px 0px;
+            font-size: 18px;
+        }
+        #inp_xx_code {
+            width: 320px;
+        }
+        #inp_interval, #inp_pre_secs {
+            width: 80px;
+        }
+        #div_next_alarm_time {
+            margin: 20px 10px;
+            padding: 10px;
+            font-size: 18px;
+            color: #000000;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <input type="text" id="inp_xx_code">
+        <button id="btn_save_xx_code">更新Code</button>
+        <button id="btn_test_audio">測試播放</button>
+        <br/>
+    </div>
+
+    <div class="control-group">
+        <button id="btn_toggle"></button>
+        <label> 間隔(m): </label>
+        <input type="number" id="inp_interval" min="1" max="120" value="30">
+        <label> 提前(s): </label>
+        <input type="number" id="inp_pre_secs" min="0" max="300" value="60">
+        <div id="div_next_alarm_time"></div>
+        <audio id="audio_alarmsound">
+            <source src="./1317-preview.wav" type="audio/mpeg">
+            您的瀏覽器不支持音效播放
+        </audio>
+    </div>
+
+
+    <script>
+        const inp_xx_code = document.getElementById('inp_xx_code');
+
+        const btn_toggle = document.getElementById('btn_toggle');
+        const inp_interval = document.getElementById('inp_interval');
+        const inp_pre_secs = document.getElementById('inp_pre_secs');
+        const div_next_alarm_time = document.getElementById('div_next_alarm_time');
+        const audio_alarmsound = document.getElementById('audio_alarmsound');
+        const m_audio_len_ms = 4000;
+        let m_timer = null;
+        let m_next_alarm_time = null;
+
+        document.getElementById('btn_save_xx_code').addEventListener('click', () => {
+            localStorage.setItem('m_def_inp_xx_code', inp_xx_code.value);
+        });
+
+        document.getElementById('btn_test_audio').addEventListener('click', () => {
+            audio_alarmsound.play();
+            setTimeout(() => {
+                audio_alarmsound.pause();
+            }, m_audio_len_ms);
+        });
+
+        function f_reset_display()
+        {
+            document.title = "倒數提醒器";
+            btn_toggle.textContent = '啟動';
+            div_next_alarm_time.textContent = '-';
+        }
+
+        function f_load_settings()
+        {
+            const m_def_inp_xx_code = localStorage.getItem('m_def_inp_xx_code');
+            if (m_def_inp_xx_code)
+            {
+                inp_xx_code.value = m_def_inp_xx_code;
+            }
+            else
+            {
+                inp_xx_code.value = f_return_xx_code();
+            }
+
+            const m_def_inp_interval = localStorage.getItem('m_def_inp_interval');
+            if (m_def_inp_interval)
+            {
+                inp_interval.value = m_def_inp_interval;
+            }
+
+            const m_def_inp_pre_secs = localStorage.getItem('m_def_inp_pre_secs');
+            if (m_def_inp_pre_secs)
+            {
+                inp_pre_secs.value = m_def_inp_pre_secs;
+            }
+        }
+
+        window.addEventListener('load', () => {
+            f_reset_display();
+            f_load_settings();
+
+            f_schedule_next_alarm();
+        });
+
+        function f_play_alarm()
+        {
+            // const m_now = new Date();
+            // console.log("f_play_alarm: " + m_now);
+
+            audio_alarmsound.play();
+            setTimeout(() => {
+                audio_alarmsound.pause();
+                f_schedule_next_alarm();
+            }, m_audio_len_ms);
+        }
+
+        function f_schedule_next_alarm()
+        {
+            const m_now = new Date();
+
+            btn_toggle.textContent = '停止';
+
+            // calculate_next_alarm_time
+            const m_interval = parseInt(inp_interval.value);
+            if (isNaN(m_interval)) return;
+            const m_pre_secs = parseInt(inp_pre_secs.value);
+            if (isNaN(m_pre_secs)) return;
+
+            m_now.setSeconds(0, 0);
+
+            const m_interval_ms = m_interval * 60000;
+            const m_pre_secs_ms = m_pre_secs * 1000;
+
+            m_next_alarm_time = new Date(Math.floor((+m_now + m_pre_secs_ms) / m_interval_ms) * m_interval_ms + m_interval_ms - m_pre_secs_ms - m_audio_len_ms);
+
+            const m_diff = m_next_alarm_time - new Date();
+
+            if (m_diff > 0) {
+                clearTimeout(m_timer);
+                m_timer = setTimeout(f_play_alarm, m_diff);
+            }
+
+            // 更新下次提醒時間
+            div_next_alarm_time.innerHTML = `> ${m_next_alarm_time.toLocaleTimeString('zh-TW', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            })}`;
+        }
+
+        function f_update_display()
+        {
+            if (!m_timer) return;
+            if (!m_next_alarm_time) return;
+
+            const m_now = new Date();
+            const m_diff = m_next_alarm_time - m_now;
+
+            if (m_diff < 0)
+            {
+                f_reset_display();
+                return;
+            }
+
+            // 更新倒數顯示
+            const m_diff_min = Math.floor(m_diff / 60000);
+            const m_diff_sec = Math.floor((m_diff % 60000) / 1000);
+            document.title = `${m_diff_min.toString().padStart(2, '0')}:${m_diff_sec.toString().padStart(2, '0')}`;
+        }
+
+        btn_toggle.addEventListener('click', () => {
+            if (m_timer) {
+                clearTimeout(m_timer);
+                m_timer = null;
+
+                f_reset_display();
+            } else {
+                f_schedule_next_alarm();
+            }
+        });
+
+        inp_interval.addEventListener('change', () => {
+            localStorage.setItem('m_def_inp_interval', inp_interval.value);
+
+            if (m_timer) f_schedule_next_alarm();
+        });
+        inp_pre_secs.addEventListener('change', () => {
+            localStorage.setItem('m_def_inp_pre_secs', inp_pre_secs.value);
+
+            if (m_timer) f_schedule_next_alarm();
+        });
+
+
+        // 強化倒數更新頻率
+        setInterval(f_update_display, 500);
+
+
+
+    </script>
+</body>
+</html>

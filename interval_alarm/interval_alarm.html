@@ -136,8 +136,8 @@
 
         function f_play_alarm()
         {
-            // const m_now = new Date();
-            // console.log("f_play_alarm: " + m_now);
+            const m_now = new Date();
+            console.log("f_play_alarm: " + m_now);
 
             audio_alarmsound.play();
             setTimeout(() => {
@@ -149,6 +149,7 @@
         function f_schedule_next_alarm()
         {
             const m_now = new Date();
+            console.log("f_schedule_next_alarm: " + m_now);
 
             btn_toggle.textContent = '停止';
 

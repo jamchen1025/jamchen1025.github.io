@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <script src="xx_code.js"></script>
+
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="../favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="../favicon/favicon.svg" />
+    <link rel="shortcut icon" href="../favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicon/apple-touch-icon.png" />
+    <title></title>
+    <style>
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        button {
+            margin: 10px 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        input {
+            margin: 20px 5px;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+        }
+        #inp_xx_code, #inp_split_result {
+            width: 320px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <input type="text" id="inp_xx_code">
+        <button id="btn_save_xx_code">更新Code</button>
+        <br/>
+        <input type="text" id="inp_split_result" readonly>
+        <button id="btn_copy_split_result">複製</button>
+        <br/>
+    </div>
+
+    <script>
+        const inp_xx_code = document.getElementById('inp_xx_code');
+        const inp_split_result = document.getElementById('inp_split_result');
+
+        function f_update_split_result()
+        {
+            const idx = inp_xx_code.value.indexOf('-');
+            inp_split_result.value = idx >= 0 ? inp_xx_code.value.substring(idx) : '';
+        }
+
+        // inp_xx_code.addEventListener('input', f_update_split_result);
+
+        document.getElementById('btn_save_xx_code').addEventListener('click', () => {
+            localStorage.setItem('m_def_inp_xx_code', inp_xx_code.value);
+            f_update_split_result();
+        });
+
+        document.getElementById('btn_copy_split_result').addEventListener('click', () => {
+            if (!inp_split_result.value) return;
+            navigator.clipboard.writeText(inp_split_result.value);
+        });
+
+        function f_load_settings()
+        {
+            const m_def_inp_xx_code = localStorage.getItem('m_def_inp_xx_code');
+            if (m_def_inp_xx_code)
+            {
+                inp_xx_code.value = m_def_inp_xx_code;
+            }
+            else
+            {
+                inp_xx_code.value = f_return_xx_code();
+            }
+            f_update_split_result();
+        }
+
+        window.addEventListener('load', () => {
+            f_load_settings();
+        });
+    </script>
+</body>
+</html>
